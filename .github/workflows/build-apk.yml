@@ -19,9 +19,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Clean Gradle Home
-        run: rm -rf ~/.gradle/caches/
-
       - name: Install Dependencies
         run: npm install
 
@@ -33,6 +30,9 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+
+      - name: Clean Gradle Cache
+        run: rm -rf ~/.gradle/caches/
 
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
