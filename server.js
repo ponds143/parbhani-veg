@@ -273,14 +273,21 @@ app.get('/', (req, res) => {
       const total = document.getElementById('total-price').innerText;
       if (total == 0) return alert('कृपया किमान एक भाजी/फळ निवडा!');
       const txnId = "TXN" + Date.now();
-      const merchantUpiLink = "upi://pay?pa=" + upiId
+      const merchant_upi_link = "upi://pay?pa=" + upiId
         + "&pn=" + encodeURIComponent("ParbhaniVeg")
         + "&am=" + total
         + "&cu=INR"
         + "&mode=02"
         + "&orgid=000000"
         + "&tr=" + txnId;
-      window.location.href = merchantUpiLink;
+      const response = {
+        intent: {
+          phonepe_link: merchant_upi_link,
+          gpay_link: merchant_upi_link,
+          paytm_link: merchant_upi_link
+        }
+      };
+      window.location.href = response.intent.phonepe_link;
     }
 
     function submitOrder() {
