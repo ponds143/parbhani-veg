@@ -1,0 +1,9 @@
+{
+	"appId": "com.parbhani.veg",
+	"appName": "Parbhani Veg",
+	"webDir": "public",
+	"server": {
+		"url": "http://187.127.128.76:5001",
+		"cleartext": true
+	}
+}
