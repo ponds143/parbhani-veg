@@ -19,7 +19,7 @@ const WalletPaymentGuide = ({ settings }) => {
     }
   };
 
-  const openUpiApp = (link) => {
+  const payUPI = (link) => {
     if (!link) return;
 
     if (Capacitor.isNativePlatform()) {
@@ -29,6 +29,8 @@ const WalletPaymentGuide = ({ settings }) => {
 
     window.open(link, '_system');
   };
+
+  const openUpiApp = payUPI;
 
   return (
     <Card className="cyber-card wallet-guide-card p-6 bg-neon-blue/10 border-neon-blue/30" data-testid="wallet-payment-guide">
@@ -92,7 +94,7 @@ const WalletPaymentGuide = ({ settings }) => {
                     onClick={(e) => {
                       if (!upiLink) return e.preventDefault();
                       e.preventDefault();
-                      openUpiApp(upiLink);
+                      payUPI(upiLink);
                     }}
                   >
                     Open UPI App
