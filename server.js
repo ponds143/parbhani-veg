@@ -9,6 +9,8 @@ app.use(express.urlencoded({ extended: true }));
 const DATA_FILE = path.join(__dirname, 'items.json');
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 const UPI_ID = "9767509494@ybl";
+const PAYMENT_RECEIVER_NAME = "Priyanka Pandurang Shinde";
+const GOOGLEPAY_PACKAGE_ID = "com.google.android.apps.nbu.paisa.user";
 
 const fullItems = [
   // --- भाज्या (Vegetables - 37+ Items) ---
@@ -216,6 +218,50 @@ app.get('/', (req, res) => {
     let cart = {};
     let currentCat = 'all';
     const upiId = "${UPI_ID}";
+    const paymentReceiverName = "${PAYMENT_RECEIVER_NAME}";
+    const googlePayPackageId = "${GOOGLEPAY_PACKAGE_ID}";
+
+    function buildPhonePeLink(amount) {
+      return "phonepe://pay?pa=" + upiId
+        + "&pn=" + encodeURIComponent(paymentReceiverName)
+        + "&am=" + encodeURIComponent(amount)
+        + "&cu=INR"
+        + "&mode=02";
+    }
+
+    function buildGPayIntentLink(amount) {
+      return "intent://pay?pa=" + upiId
+        + "&pn=" + encodeURIComponent(paymentReceiverName)
+        + "&am=" + encodeURIComponent(amount)
+        + "&cu=INR"
+        + "#Intent;scheme=upi;package=" + googlePayPackageId + ";end";
+    }
+
+    function launchWithFallback({
+      primaryLink,
+      fallbackLink,
+      fallbackDelayMs = 1400
+    }) {
+      let fallbackTimer = null;
+      const clearFallback = () => {
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') clearFallback();
+      };
+      fallbackTimer = setTimeout(() => {
+        if (document.visibilityState === 'visible') {
+          window.location.href = fallbackLink;
+        }
+        clearFallback();
+      }, fallbackDelayMs);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.location.href = primaryLink;
+    }
 
     function loadItems() {
       fetch('/api/items')
@@ -272,22 +318,12 @@ app.get('/', (req, res) => {
     function payNow() {
       const total = document.getElementById('total-price').innerText;
       if (total == 0) return alert('कृपया किमान एक भाजी/फळ निवडा!');
-      const txnId = "TXN" + Date.now();
-      const merchant_upi_link = "upi://pay?pa=" + upiId
-        + "&pn=" + encodeURIComponent("ParbhaniVeg")
-        + "&am=" + total
-        + "&cu=INR"
-        + "&mode=02"
-        + "&orgid=000000"
-        + "&tr=" + txnId;
-      const response = {
-        intent: {
-          phonepe_link: merchant_upi_link,
-          gpay_link: merchant_upi_link,
-          paytm_link: merchant_upi_link
-        }
-      };
-      window.location.href = response.intent.phonepe_link;
+      const phonepeLink = buildPhonePeLink(total);
+      const gpayLink = buildGPayIntentLink(total);
+      launchWithFallback({
+        primaryLink: phonepeLink,
+        fallbackLink: gpayLink
+      });
     }
 
     function submitOrder() {

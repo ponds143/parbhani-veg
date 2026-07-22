@@ -3,11 +3,30 @@ import { Card } from '../ui/card';
 import { BadgeInfo, CircleHelp, Copy, PhoneCall, QrCode } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
-import { Capacitor } from '@capacitor/core';
 
 const WalletPaymentGuide = ({ settings }) => {
-  const upiLink = settings?.payment_upi_id
-    ? `upi://pay?pa=${encodeURIComponent(settings.payment_upi_id)}&pn=${encodeURIComponent(settings.payment_receiver_name || 'KALYAN GAMES')}`
+  const buildPaymentQuery = () => {
+    if (!settings?.payment_upi_id) return null;
+
+    const txnId = `TXN${Date.now()}`;
+    const query = [
+      `pa=${encodeURIComponent(settings.payment_upi_id)}`,
+      `pn=${encodeURIComponent(settings.payment_receiver_name || 'KALYAN GAMES')}`,
+      "mode=02",
+      "orgid=000000",
+      `tr=${encodeURIComponent(txnId)}`,
+      "cu=INR"
+    ];
+
+    return query.join("&");
+  };
+
+  const paymentQuery = buildPaymentQuery();
+  const phonepeLink = paymentQuery
+    ? `phonepe://pay?${paymentQuery}`
+    : null;
+  const gpayLink = paymentQuery
+    ? `intent://pay?${paymentQuery}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
     : null;
 
   const handleCopy = async (value, message) => {
@@ -19,18 +38,35 @@ const WalletPaymentGuide = ({ settings }) => {
     }
   };
 
-  const payUPI = (link) => {
-    if (!link) return;
+  const launchWithFallback = (primaryLink, fallbackLink) => {
+    if (!primaryLink || !fallbackLink) return;
 
-    if (Capacitor.isNativePlatform()) {
-      window.location.href = link;
-      return;
+    let fallbackTimer = null;
+    const clearFallback = () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') clearFallback();
+    };
+    const triggerFallback = () => {
+      const shouldLaunch = document.visibilityState === 'visible';
+      clearFallback();
+      if (shouldLaunch) window.location.href = fallbackLink;
+    };
+
+    fallbackTimer = setTimeout(triggerFallback, 1300);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    try {
+      window.location.href = primaryLink;
+    } catch {
+      triggerFallback();
     }
-
-    window.open(link, '_system');
   };
-
-  const openUpiApp = payUPI;
 
   return (
     <Card className="cyber-card wallet-guide-card p-6 bg-neon-blue/10 border-neon-blue/30" data-testid="wallet-payment-guide">
@@ -90,11 +126,11 @@ const WalletPaymentGuide = ({ settings }) => {
                   data-testid="wallet-open-upi-button"
                 >
                   <a
-                    href={upiLink || '#'}
+                    href={phonepeLink || '#'}
                     onClick={(e) => {
-                      if (!upiLink) return e.preventDefault();
+                      if (!phonepeLink) return e.preventDefault();
                       e.preventDefault();
-                      payUPI(upiLink);
+                      launchWithFallback(phonepeLink, gpayLink);
                     }}
                   >
                     Open UPI App
